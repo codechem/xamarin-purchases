@@ -9,6 +9,7 @@ namespace PurchaseExample.Droid
     [Activity(Label = "Purchase Example", MainLauncher = true, Icon = "@mipmap/icon")]
     public class MainActivity : Activity
     {
+        const string API_KEY = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgeKpYmhtzBDiUXng7xxSw8GBUrkMsjdxWjb4tutL7t0Ms+zNa9e5Et3QlwSVr9Fusn15Wfc9C01cQkLMRRmwcdtR4sGbEwyk127RfdW2/iWYRDP2CypIQj0uApwg3Uay24mjQNnSphXG2KXC+Olv/ZnU7KCamnPlcGngX596ZjKluInnn4ZTqZdNM1nCfJyLxsFA7sWbttyYKHR6i0fNbdKon0SJ2CY/KuA6H1E0MMuaEvm6keS59bP3FWlbNsaT3lw4RFoT40cYa8lgzNeS5Y2GXXYAHdZQj6d4dPSErjevloRf/h7V6CZBrbGRZBMfWn5PZamg0P0d5I0ewMZ/FQIDAQAB";
         static IProduct PROD_OK = new Product("android.test.purchased");
         static IProduct PROD_CANCELLED = new Product("android.test.cancelled");
         static IProduct PROD_UNAVAILABLE = new Product("android.test.item_unavailable");
@@ -17,8 +18,8 @@ namespace PurchaseExample.Droid
         {
             base.OnCreate(savedInstanceState);
             SetContentView(Resource.Layout.Main);
-            svc = new PurchaseService("in app billing public key");
-            await svc.Init();
+            svc = new PurchaseService(API_KEY);
+            await svc.Init(this);
             await svc.Resume();
 
             BindPurchaseButton(Resource.Id.ok, PROD_OK);

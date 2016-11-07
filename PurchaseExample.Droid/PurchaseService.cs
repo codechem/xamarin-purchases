@@ -127,6 +127,7 @@ namespace CC.Mobile.Purchases
             var inAppProducts = await inAppSvc.BillingHandler.QueryInventoryAsync(products, IAB.ItemType.Product);
             if (inAppProducts == null || inAppProducts.Count == 0)
             {
+                currentPurchaseTask = null;
                 throw new PurchaseError("Product not found");
             }
             inAppSvc.BillingHandler.BuyProduct(inAppProducts[0]);

@@ -22,7 +22,7 @@ namespace CC.Mobile.Purchases
         public Task 
         Init(object context = null)
         {
-            return Task.FromResult(this);
+            return Task.FromResult(this as IPurchaseService);
         }
 
         /// <summary>

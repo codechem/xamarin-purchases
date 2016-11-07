@@ -19,7 +19,7 @@ namespace CC.Mobile.Purchases
         /// The context is not used in the iOS app so id does not need to be supplied
         /// </summary>
         /// <param name="context">Context.</param>
-        public Task 
+        public Task<IPurchaseService>
         Init(object context = null)
         {
             return Task.FromResult(this as IPurchaseService);

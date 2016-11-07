@@ -1,5 +1,4 @@
 ﻿using System;
-
 using UIKit;
 using CC.Mobile.Purchases;
 using System.Threading.Tasks;
@@ -8,7 +7,7 @@ namespace PurchaseExample.Touch
 {
     public partial class ViewController : UIViewController
     {
-        public static IProduct PROD_ONE = new Product("com.codechem.com.mobile.xamarin-purchase.one";
+        public static IProduct PROD_ONE = new Product("com.codechem.com.mobile.xamarin-purchase.one");
         IPurchaseService svc;
         protected ViewController(IntPtr handle) : base(handle)
         {

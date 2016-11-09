@@ -16,7 +16,7 @@ namespace PurchaseExample.Touch
         async public override void ViewDidLoad()
         {
             base.ViewDidLoad();
-            svc = new PurchaseServiceIOS();
+            svc = new PurchaseService();
             btnPurchase.TouchUpInside += async (s, e) => await MakePurchase(PROD_ONE);
             await svc.Init();
         }

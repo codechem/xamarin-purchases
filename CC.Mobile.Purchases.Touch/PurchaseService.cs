@@ -7,7 +7,7 @@ namespace CC.Mobile.Purchases
     /// <summary>
     /// Purchase service  implementation for ios.
     /// </summary>
-    public class PurchaseServiceIOS : IPurchaseService
+    public class PurchaseService : IPurchaseService
     {
         CustomPaymentObserver paymentObserver;
         TaskCompletionSource<Purchase> currentPurchaseTask;
@@ -95,7 +95,7 @@ namespace CC.Mobile.Purchases
         void 
         OnTransactionStatusChanged(object sender, TransactionStatusArgs e)
         {
-            if (e.ProductId == currentProduct.ProductId)
+            if (e.ProductId == currentProduct?.ProductId)
             {
                 if (currentPurchaseTask == null)
                     throw new PurchaseError("There was no purchase registered in the service");
@@ -104,7 +104,7 @@ namespace CC.Mobile.Purchases
                 currentPurchaseTask = null;
                 currentProduct = null;
             }
-            else {
+            else if(e.Status!=TransactionStatus.Failed){
                 throw new PurchaseError("Got purchase notification for unexpected product");
             }
         }
@@ -114,51 +114,6 @@ namespace CC.Mobile.Purchases
             currentProduct = null;
             if (currentPurchaseTask != null)
                 currentPurchaseTask.SetCanceled();
-        }
-    }
-
-    /// <summary>
-    /// Acts as a listener for the payments in the StoreKit
-    /// Provides an EventHandler where the results are being transmitted in .Net style
-    /// </summary>
-    internal class CustomPaymentObserver : SKPaymentTransactionObserver
-    {
-        public event EventHandler<TransactionStatusArgs>
-        TransactionStatusChanged;
-
-        // called when the transaction status is updated
-        public override void
-        UpdatedTransactions(SKPaymentQueue queue, SKPaymentTransaction[] transactions)
-        {
-            foreach (SKPaymentTransaction transaction in transactions)
-            {
-                switch (transaction.TransactionState)
-                {
-                    case SKPaymentTransactionState.Purchased:
-
-                        TransactionStatusChanged?.Invoke(
-                            this,
-                            new TransactionStatusArgs(
-                                transaction.TransactionIdentifier,
-                                transaction.Payment.ProductIdentifier,
-                                TransactionStatus.Purchased));
-
-                        // remove the transaction from the payment queue.
-                        SKPaymentQueue.DefaultQueue.FinishTransaction(transaction);
-                        break;
-                    case SKPaymentTransactionState.Failed:
-                        TransactionStatusChanged?.Invoke(
-                            this,
-                            new TransactionStatusArgs(
-                                transaction.TransactionIdentifier,
-                                transaction.Payment.ProductIdentifier,
-                                TransactionStatus.Failed));
-                        SKPaymentQueue.DefaultQueue.FinishTransaction(transaction);
-                        break;
-                    default:
-                        break;
-                }
-            }
         }
     }
 

@@ -27,6 +27,7 @@ namespace PurchaseExample.Droid
 		public static void UpdateIdValues()
 		{
 			global::Xamarin.InAppBilling.Resource.String.library_name = global::PurchaseExample.Droid.Resource.String.library_name;
+			global::CC.Mobile.Purchases.Droid.Resource.String.library_name = global::PurchaseExample.Droid.Resource.String.library_name;
 		}
 		
 		public partial class Attribute

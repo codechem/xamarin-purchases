@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Android.App;
@@ -44,13 +43,33 @@ namespace CC.Mobile.Purchases
                 IsStarted = true;
                 serviceStatusTask.SetResult(IsStarted);
                 serviceStatusTask = null;
+                if (inAppSvc?.BillingHandler != null)
+                {
+                    inAppSvc.BillingHandler.OnProductPurchased += OnProductPurchased;
+                    inAppSvc.BillingHandler.OnProductPurchasedError += OnProductPurchasedError;
+                    inAppSvc.BillingHandler.OnPurchaseConsumed += OnPurchaseConsumed;
+                    inAppSvc.BillingHandler.OnPurchaseConsumedError += OnPurchaseConsumedError;
+                    inAppSvc.BillingHandler.OnProductPurchasedError += OnProductPurchasedError;
+                    inAppSvc.BillingHandler.OnPurchaseFailedValidation += OnPurchaseFailedValidation;
+                    inAppSvc.BillingHandler.OnUserCanceled += OnUserCanceled;
+                }
             };
 
             inAppSvc.OnDisconnected += () =>
             {
                 IsStarted = false;
-                serviceStatusTask.SetResult(IsStarted);
+                serviceStatusTask?.SetResult(IsStarted);
                 serviceStatusTask = null;
+                if (inAppSvc?.BillingHandler != null)
+                {
+                    inAppSvc.BillingHandler.OnProductPurchased -= OnProductPurchased;
+                    inAppSvc.BillingHandler.OnProductPurchasedError -= OnProductPurchasedError;
+                    inAppSvc.BillingHandler.OnPurchaseConsumed -= OnPurchaseConsumed;
+                    inAppSvc.BillingHandler.OnPurchaseConsumedError -= OnPurchaseConsumedError;
+                    inAppSvc.BillingHandler.OnProductPurchasedError -= OnProductPurchasedError;
+                    inAppSvc.BillingHandler.OnPurchaseFailedValidation-=OnPurchaseFailedValidation;
+                    inAppSvc.BillingHandler.OnUserCanceled -= OnUserCanceled;
+                }
             };
 
             inAppSvc.OnInAppBillingError += (errType, err) =>
@@ -60,47 +79,7 @@ namespace CC.Mobile.Purchases
                 serviceStatusTask = null;
             };
 
-
-            inAppSvc.BillingHandler.OnProductPurchased += OnProductPurchased;
-            inAppSvc.BillingHandler.OnProductPurchasedError += OnProductPurchasedError;
-            inAppSvc.BillingHandler.OnPurchaseConsumed += OnPurchaseConsumed;
-            inAppSvc.BillingHandler.OnPurchaseConsumedError += OnPurchaseConsumedError;
-            inAppSvc.BillingHandler.OnProductPurchasedError += OnProductPurchasedError;
-            inAppSvc.BillingHandler.OnUserCanceled += OnUserCanceled;
-
             return Task.FromResult(this as IPurchaseService);
-        }
-
-        public void OnProductPurchased(int response, IAB.Purchase purchase, string purchaseData, string purchaseSignature)
-        {
-            currentPurchase = new Purchase(currentProduct, purchase.OrderId, TransactionStatus.Purchased);
-            inAppSvc.BillingHandler.ConsumePurchase(purchase);
-        }
-
-        void OnProductPurchasedError(int responseCode, string sku)
-        {
-            var res = InAppPurchaseResponse.ByCode(responseCode);
-            currentPurchaseTask.SetException(new PurchaseError($"Cannot Purchase: {res.Description}"));
-        }
-
-        void OnPurchaseConsumed(string token)
-        {
-            currentPurchaseTask.SetResult(currentPurchase);
-            currentProduct = null;
-            currentPurchaseTask = null;
-        }
-
-        void OnPurchaseConsumedError(int responseCode, string token)
-        {
-            var res = InAppPurchaseResponse.ByCode(responseCode);
-            currentPurchaseTask.SetException(new PurchaseError($"Cannot Consume the purchase: {res.Description}"));
-            currentPurchaseTask = null;
-        }
-
-        void OnUserCanceled()
-        {
-            currentPurchaseTask.SetCanceled();
-            currentPurchaseTask = null;
         }
 
         public Task<bool> Resume()
@@ -133,6 +112,49 @@ namespace CC.Mobile.Purchases
             inAppSvc.BillingHandler.BuyProduct(inAppProducts[0]);
             return await currentPurchaseTask.Task;
         }
+        /// <summary>
+        /// This method must be invoked in the Activities OnActivityResult
+        /// </summary>
+        public void HandleActivityResult(int requestCode, Result resultCode, Intent data)
+        {
+            if (resultCode == Result.Canceled)
+            {
+                SetResultAndReset(TransactionStatus.Cancelled);
+            }
+            inAppSvc.BillingHandler.HandleActivityResult(requestCode, resultCode, data);
+        }
+
+        void OnProductPurchased(int response, IAB.Purchase purchase, string purchaseData, string purchaseSignature)
+        {
+            currentPurchase = new Purchase(currentProduct, purchase.OrderId, TransactionStatus.Purchased);
+            inAppSvc.BillingHandler.ConsumePurchase(purchase);
+        }
+        void OnPurchaseFailedValidation(IAB.Purchase purchase, string purchaseData, string purchaseSignature)
+        {
+            currentPurchase = new Purchase(currentProduct, purchase.OrderId, TransactionStatus.Failed);
+            SetResultAndReset(currentPurchase);
+        }
+        void OnPurchaseConsumed(string token)
+        {
+            SetResultAndReset(currentPurchase);
+        }
+        void OnProductPurchasedError(int responseCode, string sku)
+        {
+            var res = InAppPurchaseResponse.ByCode(responseCode);
+            SetErrorAndReset(new PurchaseError($"Cannot Purchase: {res.Description}"));
+        }
+
+        void OnPurchaseConsumedError(int responseCode, string token)
+        {
+            var res = InAppPurchaseResponse.ByCode(responseCode);
+            SetErrorAndReset(new PurchaseError($"Cannot Consume the purchase: {res.Description}"));
+        }
+
+        void OnUserCanceled()
+        {
+            currentPurchaseTask.SetCanceled();
+            currentPurchaseTask = null;
+        }
 
         Task<bool> SetObserver()
         {
@@ -162,25 +184,45 @@ namespace CC.Mobile.Purchases
             }
         }
 
-        /// <summary>
-        /// This method must be invoked in the Activities OnActivityResult
-        /// </summary>
-        public void HandleActivityResult(int requestCode, Result resultCode, Intent data)
+       
+        void SetResultAndReset(TransactionStatus status, string transactionId = null)
         {
-            // Ask the open service connection's billing handler to process this request
-            inAppSvc.BillingHandler.HandleActivityResult(requestCode, resultCode, data);
+            currentPurchase = new Purchase(currentProduct, transactionId, TransactionStatus.Cancelled);
+            SetResultAndReset(currentPurchase);
+        }
+
+        void SetErrorAndReset(PurchaseError error)
+        {
+            currentPurchaseTask?.SetException(error);
+            Reset();
+        }
+
+        void SetResultAndReset(Purchase purchase)
+        {
+            currentPurchaseTask?.SetResult(purchase);
+            Reset();
+        }
+
+        void Reset()
+        {
+            currentProduct = null;
+            currentPurchaseTask = null;
+            currentPurchase = null;
         }
 
         public void Dispose()
         {
             if (inAppSvc != null)
             {
-                inAppSvc.BillingHandler.OnProductPurchased -= OnProductPurchased;
-                inAppSvc.BillingHandler.OnProductPurchasedError -= OnProductPurchasedError;
-                inAppSvc.BillingHandler.OnPurchaseConsumed -= OnPurchaseConsumed;
-                inAppSvc.BillingHandler.OnPurchaseConsumedError -= OnPurchaseConsumedError;
-                inAppSvc.BillingHandler.OnProductPurchasedError -= OnProductPurchasedError;
-                inAppSvc.BillingHandler.OnUserCanceled -= OnUserCanceled;
+                if (inAppSvc?.BillingHandler != null)
+                {
+                    inAppSvc.BillingHandler.OnProductPurchased -= OnProductPurchased;
+                    inAppSvc.BillingHandler.OnProductPurchasedError -= OnProductPurchasedError;
+                    inAppSvc.BillingHandler.OnPurchaseConsumed -= OnPurchaseConsumed;
+                    inAppSvc.BillingHandler.OnPurchaseConsumedError -= OnPurchaseConsumedError;
+                    inAppSvc.BillingHandler.OnProductPurchasedError -= OnProductPurchasedError;
+                    inAppSvc.BillingHandler.OnUserCanceled -= OnUserCanceled;
+                }
                 inAppSvc.Disconnect();
                 inAppSvc = null;
             }
@@ -190,6 +232,8 @@ namespace CC.Mobile.Purchases
             if (currentPurchaseTask != null)
                 currentPurchaseTask.SetCanceled();
         }
+
+       
     }
 
     public class InAppPurchaseResponse

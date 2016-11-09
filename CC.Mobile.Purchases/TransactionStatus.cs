@@ -7,7 +7,8 @@ namespace CC.Mobile.Purchases
     public enum TransactionStatus
     {
         Purchased,
-        Failed
+        Failed,
+        Cancelled
     }
 
     public class TransactionStatusArgs : EventArgs

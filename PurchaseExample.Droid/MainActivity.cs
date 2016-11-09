@@ -39,10 +39,10 @@ namespace PurchaseExample.Droid
                 var purchase = await svc.Purchase(product);
                 if (purchase.Status == TransactionStatus.Purchased)
                 {
-                    Toast.MakeText(this, $"Success: Just Purchased {product}", ToastLength.Long).Show();
+                    Toast.MakeText(this, $"Just Purchased {product}", ToastLength.Long).Show();
                 }
-                else {
-                    Toast.MakeText(this, $"Failed Purchase: Cannot Purchase {product}", ToastLength.Long).Show();
+                else{
+                    Toast.MakeText(this, $"Did not Purchase {product}", ToastLength.Long).Show();
                 }
             }
             catch (PurchaseError ex)
